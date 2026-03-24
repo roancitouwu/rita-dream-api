@@ -68,6 +68,8 @@ JSON (sin markdown):
     })
 
     if (!llmRes.ok) {
+      const errorText = await llmRes.text()
+      console.error('LLM error:', llmRes.status, errorText)
       return res.json({ text: 'Hmm... déjame pensar...', animation: 'confused', sugerencias: ['¿Estás bien?', 'Cuéntame', 'Te quiero'] })
     }
 

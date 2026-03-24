@@ -45,8 +45,14 @@ IMPORTANTE: NO uses slang genérico como "que onda", "wey", "neta". Usa TU estil
 
 ${historialConversacion ? `Conversación previa:\n${historialConversacion}` : ''}
 
+SUGERENCIAS: Genera 3 opciones de cosas que Rita podría responder naturalmente basándote en:
+- Cómo Rita habla en los ejemplos del KB
+- El contexto de la conversación
+- Cosas que ella preguntaría o diría en respuesta a tu mensaje
+Las sugerencias deben ser específicas al tema, NO genéricas.
+
 JSON (sin markdown):
-{"text": "respuesta en tu estilo real", "animation": "head_nod|idle_talking|confused|reject", "sugerencias": ["respuesta natural de Rita", "otra opción", "tercera"]}`
+{"text": "respuesta en tu estilo real", "animation": "head_nod|idle_talking|confused|reject", "sugerencias": ["algo específico que Rita diría", "otra respuesta contextual", "tercera opción relevante"]}`
 
     if (!MODEL_KEY) {
       return res.json({ text: 'Hey mi amor jajaja', animation: 'idle_talking', duration: 3000, sugerencias: ['¿Y qué más?', 'Cuéntame más', 'Te quiero'] })
@@ -70,7 +76,7 @@ JSON (sin markdown):
     if (!llmRes.ok) {
       const errorText = await llmRes.text()
       console.error('LLM error:', llmRes.status, errorText)
-      return res.json({ text: 'Hmm... déjame pensar...', animation: 'confused', sugerencias: ['¿Estás bien?', 'Cuéntame', 'Te quiero'] })
+      return res.json({ text: 'Hmm... déjame pensar...', animation: 'confused', sugerencias: ['Dime qué pasa', 'Estás bien?', 'Háblame'] })
     }
 
     const llmData = await llmRes.json() as { choices?: Array<{ message?: { content?: string } }> }
@@ -84,12 +90,14 @@ JSON (sin markdown):
           text: parsed.text || content, 
           animation: parsed.animation || 'idle_talking', 
           duration: 3000,
-          sugerencias: Array.isArray(parsed.sugerencias) ? parsed.sugerencias.slice(0, 3) : ['¿Y qué más?', 'Cuéntame más', 'Te quiero']
+          sugerencias: Array.isArray(parsed.sugerencias) && parsed.sugerencias.length > 0 
+            ? parsed.sugerencias.slice(0, 3) 
+            : ['Cuéntame más', 'Y tú qué piensas?', 'Sigue']
         })
       }
     } catch {}
 
-    return res.json({ text: content, animation: 'idle_talking', duration: 3000, sugerencias: ['¿Y qué más?', 'Cuéntame más', 'Te quiero'] })
+    return res.json({ text: content, animation: 'idle_talking', duration: 3000, sugerencias: ['Cuéntame más', 'Y tú?', 'Sigue'] })
   } catch (error) {
     console.error('Error:', error)
     return res.status(500).json({ error: 'Internal error' })

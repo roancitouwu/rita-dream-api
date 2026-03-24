@@ -9,7 +9,8 @@ async function connectDB() {
   if (mongoose && mongoose.connection.readyState === 1) return true
   
   try {
-    mongoose = await import('mongoose')
+    const mongooseModule = await import('mongoose')
+    mongoose = mongooseModule.default || mongooseModule
     await mongoose.connect(process.env.MONGODB_URI)
     
     const schema = new mongoose.Schema({

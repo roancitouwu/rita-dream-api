@@ -62,7 +62,7 @@ JSON (sin markdown):
           { role: 'user', content: `Emilio responde a: ${situacion}` }
         ],
         temperature: 0.9,
-        max_completion_tokens: 200,
+        max_completion_tokens: 256,
         top_p: 0.95
       })
     })

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
+// v2 - sugerencias + anti-slang
 const KB_ID = process.env.DO_KB_ID || ''
 const API_KEY = process.env.DO_API_KEY || ''
 const MODEL_KEY = process.env.DO_MODEL_KEY || ''

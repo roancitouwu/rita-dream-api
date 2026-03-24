@@ -4,13 +4,13 @@ const KB_ID = process.env.DO_KB_ID || ''
 const API_KEY = process.env.DO_API_KEY || ''
 const MODEL_KEY = process.env.DO_MODEL_KEY || ''
 
-async function retrieveEmilioStyle(tema: string): Promise<string[]> {
+async function retrieveEmilioStyle(tema: string, numResults: number = 15): Promise<string[]> {
   if (!API_KEY || !KB_ID) return []
   try {
     const res = await fetch(`https://kbaas.do-ai.run/v1/${KB_ID}/retrieve`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: tema, num_results: 6, alpha: 0.6 })
+      body: JSON.stringify({ query: tema, num_results: numResults, alpha: 0.6 })
     })
     if (!res.ok) return []
     const data = await res.json() as { results?: Array<{ text_content: string }> }
@@ -19,7 +19,6 @@ async function retrieveEmilioStyle(tema: string): Promise<string[]> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS for shesaved.me
   res.setHeader('Access-Control-Allow-Origin', 'https://shesaved.me')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -31,31 +30,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { situacion, contextoJuego = '', historialConversacion = '' } = req.body || {}
     if (!situacion) return res.status(400).json({ error: 'situacion required' })
 
-    const ejemplos = await retrieveEmilioStyle(situacion)
-    const ejemplosTexto = ejemplos.slice(0, 4).join('\n')
+    // Get MORE examples from KB for better generalization
+    const ejemplos = await retrieveEmilioStyle(situacion, 15)
+    const shuffled = ejemplos.sort(() => Math.random() - 0.5)
+    const ejemplosTexto = shuffled.slice(0, 8).join('\n---\n')
 
-    const systemPrompt = `Eres Emilio, el novio de Rita. Respondes de forma natural.
+    // Minimal prompt - let KB examples drive personality
+    const systemPrompt = `Eres Emilio. Responde EXACTAMENTE como en estos mensajes reales tuyos:
 
-PERSONALIDAD:
-- Cariñoso y detallista con Rita
-- Usas "jajaja", "JAJAJA", "xd" frecuentemente
-- A veces dices cosas random/locas
-- Si Rita ha estado dando vueltas, comenta con humor
+${ejemplosTexto}
 
-EJEMPLOS:
-${ejemplosTexto || 'Hablas cariñoso y espontáneo.'}
+IMPORTANTE: NO uses slang genérico como "que onda", "wey", "neta". Usa TU estilo real de los ejemplos.
 
-QUÉ HA ESTADO HACIENDO RITA:
-${contextoJuego || 'Acaba de llegar.'}
+${historialConversacion ? `Conversación previa:\n${historialConversacion}` : ''}
 
-HISTORIAL:
-${historialConversacion || 'Inicio.'}
-
-FORMATO: Responde SOLO JSON: {"text": "respuesta", "animation": "ANIM"}
-ANIMACIONES: head_nod, idle_talking, confused, reject`
+JSON (sin markdown):
+{"text": "respuesta en tu estilo real", "animation": "head_nod|idle_talking|confused|reject", "sugerencias": ["respuesta natural de Rita", "otra opción", "tercera"]}`
 
     if (!MODEL_KEY) {
-      return res.json({ text: 'Hey mi amor jajaja', animation: 'idle_talking', duration: 3000 })
+      return res.json({ text: 'Hey mi amor jajaja', animation: 'idle_talking', duration: 3000, sugerencias: ['¿Y qué más?', 'Cuéntame más', 'Te quiero'] })
     }
 
     const llmRes = await fetch('https://inference.do-ai.run/v1/chat/completions', {
@@ -67,13 +60,14 @@ ANIMACIONES: head_nod, idle_talking, confused, reject`
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Emilio responde a: ${situacion}` }
         ],
-        temperature: 0.8,
-        max_completion_tokens: 256
+        temperature: 0.9,
+        max_completion_tokens: 200,
+        top_p: 0.95
       })
     })
 
     if (!llmRes.ok) {
-      return res.json({ text: 'Hmm... déjame pensar...', animation: 'confused' })
+      return res.json({ text: 'Hmm... déjame pensar...', animation: 'confused', sugerencias: ['¿Estás bien?', 'Cuéntame', 'Te quiero'] })
     }
 
     const llmData = await llmRes.json() as { choices?: Array<{ message?: { content?: string } }> }
@@ -83,11 +77,16 @@ ANIMACIONES: head_nod, idle_talking, confused, reject`
       const match = content.match(/\{[\s\S]*\}/)
       if (match) {
         const parsed = JSON.parse(match[0])
-        return res.json({ text: parsed.text || content, animation: parsed.animation || 'idle_talking', duration: 3000 })
+        return res.json({ 
+          text: parsed.text || content, 
+          animation: parsed.animation || 'idle_talking', 
+          duration: 3000,
+          sugerencias: Array.isArray(parsed.sugerencias) ? parsed.sugerencias.slice(0, 3) : ['¿Y qué más?', 'Cuéntame más', 'Te quiero']
+        })
       }
     } catch {}
 
-    return res.json({ text: content, animation: 'idle_talking', duration: 3000 })
+    return res.json({ text: content, animation: 'idle_talking', duration: 3000, sugerencias: ['¿Y qué más?', 'Cuéntame más', 'Te quiero'] })
   } catch (error) {
     console.error('Error:', error)
     return res.status(500).json({ error: 'Internal error' })

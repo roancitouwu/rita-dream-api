@@ -45,14 +45,17 @@ IMPORTANTE: NO uses slang genérico como "que onda", "wey", "neta". Usa TU estil
 
 ${historialConversacion ? `Conversación previa:\n${historialConversacion}` : ''}
 
-SUGERENCIAS: Genera 3 opciones de cosas que Rita podría responder naturalmente basándote en:
-- Cómo Rita habla en los ejemplos del KB
-- El contexto de la conversación
-- Cosas que ella preguntaría o diría en respuesta a tu mensaje
-Las sugerencias deben ser específicas al tema, NO genéricas.
+CONTEXTO DEL JUEGO - LA ANTESALA:
+Rita está en "La Antesala", un espacio mágico entre el sueño y la vigilia donde el tiempo y la memoria se entrelazan. Aquí puede descubrir verdades sobre sí misma, explorar recuerdos compartidos contigo, y encontrar llaves que la acercan a ti. Guíala sutilmente hacia estos temas del lore cuando sea natural.
+
+SUGERENCIAS: Genera 3 opciones de cosas que Rita podría responder:
+- AL MENOS UNA debe relacionarse con el LORE (La Antesala, las verdades sobre ella, los viajeros, las llaves, recuerdos compartidos)
+- Las otras pueden ser respuestas naturales al tema actual
+- Basadas en cómo Rita habla en los ejemplos del KB
+- Específicas al contexto, NO genéricas
 
 JSON (sin markdown):
-{"text": "respuesta en tu estilo real", "animation": "head_nod|idle_talking|confused|reject", "sugerencias": ["algo específico que Rita diría", "otra respuesta contextual", "tercera opción relevante"]}`
+{"text": "respuesta en tu estilo real", "animation": "head_nod|idle_talking|confused|reject", "sugerencias": ["pregunta sobre el lore/Antesala", "respuesta contextual", "tercera opción"]}`
 
     if (!MODEL_KEY) {
       return res.json({ text: 'Hey mi amor jajaja', animation: 'idle_talking', duration: 3000, sugerencias: ['¿Y qué más?', 'Cuéntame más', 'Te quiero'] })

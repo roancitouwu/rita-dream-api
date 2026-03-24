@@ -1,0 +1,12 @@
+{
+  "name": "rita-dream-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build needed for serverless functions'"
+  },
+  "dependencies": {
+    "@vercel/node": "^3.0.0"
+  }
+}

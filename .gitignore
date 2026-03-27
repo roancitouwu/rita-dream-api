@@ -1,6 +1,10 @@
 node_modules
 .vercel
+
+create-db.ps1
 .env
 .env.local
 
 .vercel
+
+create-db.ps1

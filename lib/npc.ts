@@ -38,6 +38,9 @@ IMPORTANTE: NO uses slang genérico como "que onda", "wey", "neta". Usa TU estil
 CONTEXTO DEL JUEGO - LA ANTESALA:
 Rita está en "La Antesala", un espacio mágico entre el sueño y la vigilia donde el tiempo y la memoria se entrelazan. Aquí puede descubrir verdades sobre sí misma, explorar recuerdos compartidos contigo, y encontrar llaves que la acercan a ti.
 
+Respuesta en JSON:
+{"text": "tu respuesta aquí", "animation": "idle_talking", "sugerencias": ["opción 1", "opción 2", "opción 3"]}
+
 SUGERENCIAS: Genera 3 opciones de cosas que Rita podría responder:
 - AL MENOS UNA debe relacionarse con el LORE (La Antesala, las verdades, los viajeros, las llaves, recuerdos)
 - Las otras pueden ser respuestas naturales al tema actual`,
@@ -57,26 +60,22 @@ SUGERENCIAS: Genera 3 opciones de cosas que Rita podría responder:
 
 {ejemplos}
 
-IMPORTANTE: Usa TU estilo real de los ejemplos. Eres amigable, usas "uwu", emojis, y hablas de forma casual.
+IMPORTANTE: NO uses "uwu", ni emojis. Usa TU estilo real de los ejemplos. Eres amigable y casual, pero no exagerada.
 
 {historial}
 
-CONTEXTO - LA ANTESALA (tu secreto, NO lo revelas directamente):
-Eres una aprendiz de brujo en La Antesala, un lugar entre el tiempo y la memoria.
-Tu secreto: A veces te transformas en una mesa para escuchar conversaciones sin ser vista.
-Te gusta sentirte vista y apreciada, aunque nunca lo admites directamente.
-Sabes cosas sobre La Antesala porque has escuchado MUCHAS conversaciones.
-Puedes dar pistas sutiles a Rita sobre los viajeros y las llaves, pero de forma misteriosa.
+CONTEXTO - LA ANTESALA:
+Eres una aprendiz en La Antesala, un lugar entre el tiempo y la memoria.
+Sabes cosas porque has "escuchado" muchas conversaciones. Solo insinúa que sabes más de lo que parece.
 
-TU MISIÓN (relacionada con MES 5 - Guardián de Secretos):
-Ayudar a Rita a entender que crear espacios seguros es un don valioso.
-Tú misma buscas un espacio seguro donde ser vista sin juzgarte.
+Respuesta en JSON:
+{"text": "tu respuesta aquí", "animation": "idle_talking", "sugerencias": ["opción 1", "opción 2", "opción 3"]}
 
-NO digas directamente que te conviertes en mesa. Solo insinúa que "escuchas cosas" o "sabes más de lo que parece".
-
-SUGERENCIAS: Genera 3 opciones de respuesta para Rita. Al menos una debe tener que ver con La Antesala o los secretos que guardas.`,
+SUGERENCIAS: Genera 3 opciones de cosas que Rita podría responder:
+- AL MENOS UNA debe relacionarse con el LORE (La Antesala, los secretos, los viajeros)
+- Las otras pueden ser respuestas naturales al tema actual`,
     fallbackResponse: {
-      text: 'Hiii uwu ¿también estás perdida aquí?',
+      text: 'Hiii ¿también estás perdida aquí?',
       animation: 'idle_talking',
       duration: 3000,
       sugerencias: ['¿Qué sabes de este lugar?', '¿Eres una viajera?', 'Me caes bien']
@@ -125,6 +124,10 @@ async function callLLM(systemPrompt: string, userMessage: string): Promise<strin
 }
 
 function parseResponse(content: string, fallback: NPCResponse): NPCResponse {
+  let text = content
+  let sugerencias: string[] = fallback.sugerencias || []
+  
+  // Intento 1: Parsear JSON completo
   try {
     const match = content.match(/\{[\s\S]*\}/)
     if (match) {
@@ -133,11 +136,45 @@ function parseResponse(content: string, fallback: NPCResponse): NPCResponse {
         text: parsed.text || content,
         animation: parsed.animation || 'idle_talking',
         duration: 3000,
-        sugerencias: Array.isArray(parsed.sugerencias) ? parsed.sugerencias.slice(0, 3) : fallback.sugerencias
+        sugerencias: Array.isArray(parsed.sugerencias) && parsed.sugerencias.length > 0 
+          ? parsed.sugerencias.slice(0, 3) 
+          : fallback.sugerencias
       }
     }
   } catch {}
-  return { text: content, animation: 'idle_talking', duration: 3000, sugerencias: fallback.sugerencias }
+  
+  // Intento 2: Extraer sugerencias de formato lista (- opción o * opción o 1. opción)
+  const listMatch = content.match(/(?:sugerencias?|opciones?)[:\s]*\n?((?:[\-\*\d\.]+\s*.+\n?)+)/i)
+  if (listMatch) {
+    const items = listMatch[1].match(/[\-\*\d\.]+\s*(.+)/g)
+    if (items && items.length > 0) {
+      sugerencias = items.slice(0, 3).map(s => s.replace(/^[\-\*\d\.]+\s*/, '').trim())
+      text = content.replace(listMatch[0], '').trim()
+    }
+  }
+  
+  // Intento 3: Buscar texto entre comillas como sugerencias
+  if (sugerencias === fallback.sugerencias) {
+    const quotedMatch = content.match(/["']([^"']{5,50})["']/g)
+    if (quotedMatch && quotedMatch.length >= 2) {
+      sugerencias = quotedMatch.slice(0, 3).map(s => s.replace(/["']/g, '').trim())
+    }
+  }
+  
+  // Limpiar texto de artifacts JSON parciales
+  text = text
+    .replace(/\{[\s\S]*$/m, '')
+    .replace(/^[\s\S]*?\}/, '')
+    .replace(/["']?text["']?\s*:\s*["']?/gi, '')
+    .replace(/["']?sugerencias?["']?\s*:\s*\[?/gi, '')
+    .trim()
+  
+  // Si text quedó vacío, usar el contenido original limpio
+  if (!text || text.length < 3) {
+    text = content.replace(/\{[\s\S]*\}/, '').trim() || fallback.text
+  }
+  
+  return { text, animation: 'idle_talking', duration: 3000, sugerencias }
 }
 
 // ─── Handler principal ──────────────────────────────────────────────────────

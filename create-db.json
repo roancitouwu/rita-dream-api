@@ -1,0 +1,9 @@
+{
+  "name": "rita-dream-db",
+  "engine": "mongodb",
+  "version": "7",
+  "region": "nyc3",
+  "size": "db-s-1vcpu-1gb",
+  "num_nodes": 1,
+  "tags": ["production"]
+}

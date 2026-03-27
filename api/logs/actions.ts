@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { cors, methodNotAllowed } from '../../lib/cors'
 
 // MongoDB connection (optional - add MONGODB_URI env var to enable)
 let mongoose: typeof import('mongoose') | null = null
@@ -29,12 +30,8 @@ async function connectDB() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://shesaved.me')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-
-  if (req.method === 'OPTIONS') return res.status(204).end()
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (cors(req, res)) return
+  if (methodNotAllowed(req, res, 'POST')) return
 
   try {
     const { sessionId, actions, summary } = req.body || {}
